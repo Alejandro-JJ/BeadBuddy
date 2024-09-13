@@ -2,7 +2,7 @@ import warnings
 warnings.filterwarnings('ignore')
 import sys
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtWidgets import QMainWindow, QFileDialog
+from PyQt5.QtWidgets import QMainWindow, QFileDialog, QToolTip
 import PyQt5.QtGui as QtGui
 from PyQt5.QtGui import QImage
 from skimage import io
@@ -261,6 +261,14 @@ class Ui_MainWindow(QMainWindow):
         self.checkBox.setText(_translate("MainWindow", "External plots"))
         self.menuFile.setTitle(_translate("MainWindow", "File..."))
         self.Button_Open.setText(_translate("MainWindow", "Open TIFF"))
+        
+        '''
+        Set tooltips
+        '''
+        self.INPUT_BGnoise.setToolTip("Kernel size (in pixels) \nfor a smoothing gaussian filter")
+        self.INPUT_Threshold.setToolTip("Intensity pixel value at which \nthe watershed algorith will start working")
+        self.INPUT_Spot.setToolTip("Estimated size (in pixels) of the expected objects \nIf left to 1, all objects will be considered")
+        self.INPUT_Outline.setToolTip("Separation of expected objects. The higher \nthis value (1-10), the more segments will be considered in an object")
         
         '''
         Initial disable of buttons
