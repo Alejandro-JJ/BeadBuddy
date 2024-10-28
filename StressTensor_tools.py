@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import dill 
 from matplotlib.ticker import MaxNLocator
-
+from numba import jit
 dill.settings['recursive']=True
 r, r0, theta, phi, l, m, pi, x, nu, G = sp.symbols('r, r0, θ, φ, l, m, π, x, ν, G')
 
@@ -100,7 +100,7 @@ def ParameterSubstitution(expr, coeff_table, initial_radius, G_exp, nu_exp, Orde
     Returns the expression ready to evaluate in a custom coordinate grid
     '''
     D = IndexedBase('D')
-#    start = time()
+    start = time()
     maxn = np.shape(coeff_table)[1]
     substs = {}
     for n in tqdm(range(first_n, Order+3), colour='cyan'): #Order+2 will be necessary
@@ -115,9 +115,54 @@ def ParameterSubstitution(expr, coeff_table, initial_radius, G_exp, nu_exp, Orde
     substs[r0] = initial_radius
     substs[G] = G_exp
     substs[nu] = nu_exp
+    print(f'\nGeneration of dictionary took {int(time()-start)} seconds')
+    start = time()
     expr = expr.subs(substs) # Simultaneous substitution of the whole dictionary
-#    print(f'\nSubstitution of parameters took {int(time()-start)} seconds')
+    print(f'\nSubstitution of parameters took {int(time()-start)} seconds')
     return expr.evalf()
+
+def ParameterSubstitutionReplace(expr, coeff_table, initial_radius, G_exp, nu_exp, Order, first_n=0): 
+    '''
+    Substitute all necesary parameters in the MasterEquation to leave it only dependent
+    on the spatial coordinates (r, theta, phi).
+    The order ius dictated by the solution we loaded
+    This creates a dictionary containing:
+        * All SH coefficients from the loaded table
+        * Initial radius, G and nu
+    Returns the expression ready to evaluate in a custom coordinate grid
+    '''
+    D = IndexedBase('D')
+    start = time()
+    maxn = np.shape(coeff_table)[1]
+    substs = {}
+    for n in tqdm(range(first_n, Order+3), colour='cyan'): #Order+2 will be necessary
+        for m in range(-n, n+1):
+            if n>=maxn: # if the coefficient is not in our table
+                substs[D[n,m]] = 0
+            elif m >=0:
+                substs[D[n,m]] = coeff_table[0,n,m]
+            else:
+                substs[D[n,m]] = coeff_table[1,n,-m]
+    # Other parameters
+    substs[r0] = initial_radius
+    substs[G] = G_exp
+    substs[nu] = nu_exp
+    print(f'\nGeneration of dictionary took {int(time()-start)} seconds')
+    start = time()
+    expr = expr.xreplace(substs)
+    print(f'\nREPLACEMENT of parameters took {int(time()-start)} seconds')
+    return expr.evalf()
+
+def FastParameterSubstitution(expr, coeff_table, initial_radius, G_exp, nu_exp, Order, first_n=0):
+    '''
+    An attempt to make substitution faster using a lambdyfy instead of subs
+    First, we create a dictionary with all parameters to be substituted.
+    Then, lambdify and evaluate.
+    It returns an already lambdified expression!!!
+    '''
+    pass
+
+
 
 def Equation2Maps(sympy_expression, coeff_table_complex, initial_radius, N_lats=100, N_lons=200):
     '''
@@ -134,6 +179,7 @@ def Equation2Maps(sympy_expression, coeff_table_complex, initial_radius, N_lats=
 #    start = time()
     # Define a custom size for the evaluation array
     lats_eval, lons_eval = np.meshgrid(np.linspace(0,np.pi,N_lats), np.linspace(0,2*np.pi,N_lons))
+
     coeffs = sh.SHCoeffs.from_array(coeff_table_complex, normalization='ortho',csphase=-1)
     map_deform = coeffs.expand(colat=lats_eval, lon=lons_eval, degrees=False)
     map_r = (map_deform + initial_radius)
@@ -143,16 +189,18 @@ def Equation2Maps(sympy_expression, coeff_table_complex, initial_radius, N_lats=
     map_deform = take_real(map_deform)
     map_deform_norm = map_deform/initial_radius
     
-    # Create a function from our expression 
+    # Create a function from our expression. This is the bottleneck, can be improved with other libraries
     T_function = lambdify([r, theta, phi], sympy_expression)
     
     # Evaluate it on the grid
     T_complex = T_function(map_r_R, lats_eval, lons_eval) # this is the bottleneck
     map_T_real = take_real(T_complex)
 #    map_T_imag = take_imag(T_complex)
+ 
     # All arrays must be transposed
 #    print(f'Evaluation onto a spherical grid tool {int(time()-start)} seconds')
     return map_deform_norm.T, map_r_R.T, map_T_real.T#, map_T_imag
+
 
 
 def Plotter_Maps2D(maps,titles=[], units=[], colorlist=None):
@@ -160,8 +208,8 @@ def Plotter_Maps2D(maps,titles=[], units=[], colorlist=None):
     This function accepts a list with an arbitraty number of maps to be plotted
     and plots them in latitude-longitude fashion
     """
-    #plt.style.use('dark_background')
-    plt.style.use('default')
+    plt.style.use('dark_background')
+#    plt.style.use('default')
     fuente = {'fontsize':12, 'fontname':'Arial'}
     N_maps = len(maps)
     len_tt, len_pp = np.shape(maps[0])[0]-1, np.shape(maps[0])[1]-1
@@ -247,8 +295,8 @@ def Plotter_MapOnMap(map_r, map_toplot, title='', color=None, ax=None):
     y = map_r * np.sin(tt) * np.sin(pp)
     z = map_r * np.cos(tt)
     #Plot with custom map as facecolor
-    plt.style.use('default')
-    #plt.style.use('dark_background')
+#    plt.style.use('default')
+    plt.style.use('dark_background')
     if ax==None:
         fig = plt.figure(figsize=(5,5))
         ax = fig.add_subplot(111, projection='3d')
@@ -324,15 +372,21 @@ def BeadSolver(tablepath, order=5, G_exp=1, nu_exp=0.45, N_lats=50, N_lons=100):
     lmax, coeff_table_real, coeff_table_complex, initial_radius = create_table(tablepath, units='m')
     
     # Load the necessary Master Equation
-    EquationPath = f'./GeneralSolutions/GeneralSolution_lmax={str(order).zfill(2)}.txt'
+    EquationPath = f'/media/alejandro/Coding/MyGits/BEADBUDDY/GeneralSolutions/GeneralSolution_lmax={str(order).zfill(2)}.txt'
+    # Just for testing, the solutions corrected with 4piin the K terms
+#    EquationPath = f'./GeneralSolutions_4piK/GeneralSolution_lmax={str(order).zfill(2)}.txt'
+
     MasterEquation = dill.load(open(EquationPath, 'rb'))
     
     # Substitute all the Sh coeffs and the physical parameters into the Master Equation
-    sympy_expression = ParameterSubstitution(MasterEquation, coeff_table_complex, initial_radius, G_exp, nu_exp, order)
-    
+#    sympy_expression = ParameterSubstitution(MasterEquation, coeff_table_complex, initial_radius, G_exp, nu_exp, order)
+    # REPLACE numbers instead of subs, 10 times faster
+    sympy_expression = ParameterSubstitutionReplace(MasterEquation, coeff_table_complex, initial_radius, G_exp, nu_exp, order)
+
     # Evaluate the tension function onto a custom grid
+#    map_deform_norm, map_r_R, map_T_R = Equation2Maps(sympy_expression, coeff_table_complex, initial_radius, N_lats=N_lats, N_lons=N_lons)
     map_deform_norm, map_r_R, map_T_R = Equation2Maps(sympy_expression, coeff_table_complex, initial_radius, N_lats=N_lats, N_lons=N_lons)
-    print(f'Solution took {int(time()-start)} seconds')
+    print(f'Solution took {round(time()-start, 4)} seconds')    
     print('='*50+'\n')
     return map_r_R, map_T_R
 #    plt.figure(), plt.imshow(map_r_R)
@@ -343,12 +397,64 @@ def BeadSolver(tablepath, order=5, G_exp=1, nu_exp=0.45, N_lats=50, N_lons=100):
 '''
 Example use
 '''
+# 6 seconds with subs
+# with xreplace
+
+import os
 if __name__ == "__main__": # dont execute on import
-    mytable = GenerateCustomTable([(2,0,-0.7), (4,-3,0.9)])
-    np.save('tablita.npy', mytable)
-    plt.close('all')
-    tablepath = '/media/alejandro/Coding/MyGits/BEADBUDDY/tablita.npy'
-    map_r_R, map_T_R = BeadSolver(tablepath, order=5, N_lats=50, N_lons=100, G_exp=2100)
-    Plotter_Maps2D([map_r_R, map_T_R], titles=['Radius', 'Tension'], units=['um', 'Pa'], colorlist=['RdBu', 'BrBG'])
-    Plotter_MapOnMap(map_r_R, map_T_R, title='Radial tension', color='BrBG')
-    Force = IntegrateTension(map_r_R,map_T_R)
+#    mytable = GenerateCustomTable(([0,0,10], [2,2,0.71], [4,-3, 0.36]))
+#    np.save('tablita.npy', mytable)
+#    plt.close('all')
+#    tablepath = '/media/alejandro/Coding/MyGits/BEADBUDDY/tablita.npy'
+    parent = '/media/alejandro/PAPER_2024/Figure_5_Examples/Arne_muscles/belly2/PAABeads/Segmentations_20_100_2_1/SH_Analysis_PAABeads_down_substack_50_395_SH_11/' 
+    files = list(sorted([f for f in os.listdir(parent) if f.endswith('npy')]))
+    Forces = []
+    for i, file in enumerate(files):
+            tablepath =  parent+file
+            map_r_R, map_T_R = BeadSolver(tablepath, order=1, N_lats=50, N_lons=100, G_exp=7800, nu_exp=0.45)
+            Force = IntegrateTension(map_r_R,map_T_R)
+            Forces.append(Force)
+#    np.savetxt(parent+'Forces_mN.txt', cosa)
+#%% Solution times
+if __name__ == "__main__":
+    plt.style.use('dark_background')
+    order = [1,2,3,4,5,6,7,8,9,10]
+    timesol = [0.2929, 0.3654, 0.5325, 0.7864, 1.014, 1.3758, 2.1087, 2.3813, 2.8119, 3.8098]
+    fig, ax = plt.subplots(1,1, figsize=(6,4))
+    plt.plot(order, timesol, '^-', markersize=10, c='coral')
+    fs = 15
+    ax.set_xlabel('Solution order', fontsize=fs)
+    ax.set_ylabel('Solution time [s]', fontsize=fs)
+    ax.tick_params(axis='both', labelsize=fs)
+    ax.set_title('Solution time of BeadBuddy', fontsize=fs)
+    plt.grid(alpha=0.3)
+    plt.tight_layout()
+
+#%%
+'''
+Bead clearing comparison Arne
+'''
+import os
+from tqdm import tqdm
+if __name__ == "__main__": # dont execute on import
+    path_1 = '/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/before/'
+    path_2 = '/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/after/'
+    Forces = []
+    Radii = []
+    for path in [path_1, path_2]:    
+        files = list(sorted([f for f in os.listdir(path)]))
+        temp_forces = []
+        temp_radii = []
+        for file in tqdm(files):
+                tablepath =  path+file
+                map_r_R, map_T_R, initial_radius = BeadSolver(tablepath, order=5, N_lats=50, N_lons=100, G_exp=7800, nu_exp=0.45)
+                Force = IntegrateTension(map_r_R,map_T_R)
+                temp_forces.append(Force)
+                temp_radii.append(initial_radius)
+        Forces.append(temp_forces)
+        Radii.append(temp_radii)
+
+    np.savetxt('/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/Forces_before.txt', Forces[0])
+    np.savetxt('/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/Forces_after.txt', Forces[1])
+    np.savetxt('/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/Radii_before.txt', Radii[0])
+    np.savetxt('/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/Radii_after.txt', Radii[1])

@@ -70,6 +70,8 @@ def Kz(n,m):
 
 def K(n,m):
     return Kx(n,m)*C.i + Ky(n,m)*C.j + Kz(n,m)*C.k
+    # Only for testing. Correction 4pi to all K terms
+#    return (Kx(n,m)*C.i + Ky(n,m)*C.j + Kz(n,m)*C.k)/(4*sp.pi)
 
 
 def c(n,m):
@@ -125,5 +127,5 @@ at least for the initialization of BeadBuddy.
 Afterwards a user could add Tinrr for additional higher orders
 '''
 for lmax in range(1,11):
-    savepath = f'./GeneralSolutions/GeneralSolution_lmax={str(lmax).zfill(2)}.txt'
+    savepath = f'./GeneralSolutions_4piK/GeneralSolution_lmax={str(lmax).zfill(2)}.txt'
     GenerateSolution(lmax, savepath=savepath)
