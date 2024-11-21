@@ -126,6 +126,8 @@ when solving. To avoid loading several dill files later, however, we opt for thi
 at least for the initialization of BeadBuddy.
 Afterwards a user could add Tinrr for additional higher orders
 '''
-for lmax in range(1,11):
-    savepath = f'./GeneralSolutions_4piK/GeneralSolution_lmax={str(lmax).zfill(2)}.txt'
+from tqdm import tqdm
+for lmax in tqdm(range(11,16)):
+    print(lmax)
+    savepath = f'./GeneralSolutions/GeneralSolution_lmax={str(lmax).zfill(2)}.txt'
     GenerateSolution(lmax, savepath=savepath)

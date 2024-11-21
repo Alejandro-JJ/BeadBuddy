@@ -15,6 +15,7 @@ from matplotlib import cm
 import dill 
 from matplotlib.ticker import MaxNLocator
 from numba import jit
+import tensorflow
 dill.settings['recursive']=True
 r, r0, theta, phi, l, m, pi, x, nu, G = sp.symbols('r, r0, θ, φ, l, m, π, x, ν, G')
 
@@ -147,20 +148,49 @@ def ParameterSubstitutionReplace(expr, coeff_table, initial_radius, G_exp, nu_ex
     substs[r0] = initial_radius
     substs[G] = G_exp
     substs[nu] = nu_exp
-    print(f'\nGeneration of dictionary took {int(time()-start)} seconds')
+    print(f'\nGeneration of dictionary took {float(time()-start)} seconds')
     start = time()
     expr = expr.xreplace(substs)
-    print(f'\nREPLACEMENT of parameters took {int(time()-start)} seconds')
-    return expr.evalf()
+    print(f'\nREPLACEMENT of parameters took {float(time()-start)} seconds')
+    return expr.evalf(5)
 
-def FastParameterSubstitution(expr, coeff_table, initial_radius, G_exp, nu_exp, Order, first_n=0):
+def ParameterSubstitutionReplace_Dampened(expr, coeff_table, initial_radius, 
+                                          G_exp, nu_exp, Order, first_n=0, beta=0.9, threshold=8): 
     '''
-    An attempt to make substitution faster using a lambdyfy instead of subs
-    First, we create a dictionary with all parameters to be substituted.
-    Then, lambdify and evaluate.
-    It returns an already lambdified expression!!!
+    Substitute all necesary parameters in the MasterEquation to leave it only dependent
+    on the spatial coordinates (r, theta, phi).
+    The order ius dictated by the solution we loaded
+    This creates a dictionary containing:
+        * All SH coefficients from the loaded table
+        * Initial radius, G and nu
+    Returns the expression ready to evaluate in a custom coordinate grid
+    
+    Dampening was tried with np.exp(-alpha*n) (exponential)
+    Now imnplemented with sigmoid 
     '''
-    pass
+    D = IndexedBase('D')
+    start = time()
+    maxn = np.shape(coeff_table)[1]
+    substs = {}
+    for n in tqdm(range(first_n, Order+3), colour='cyan'): #Order+2 will be necessary
+        for m in range(-n, n+1):
+            if n>=maxn: # if the coefficient is not in our table
+                substs[D[n,m]] = 0
+            elif m >=0:
+                damping = 1 / (1 + np.exp(beta * (n - threshold)))
+                substs[D[n,m]] = coeff_table[0,n,m] * damping
+            else:
+                damping = 1 / (1 + np.exp(beta * (n - threshold)))
+                substs[D[n,m]] = coeff_table[1,n,-m] * damping
+    # Other parameters
+    substs[r0] = initial_radius
+    substs[G] = G_exp
+    substs[nu] = nu_exp
+    print(f'\nGeneration of dictionary took {float(time()-start)} seconds')
+    start = time()
+    expr = expr.xreplace(substs)
+    print(f'\nREPLACEMENT of parameters took {float(time()-start)} seconds')
+    return expr.evalf(5)
 
 
 
@@ -199,6 +229,10 @@ def Equation2Maps(sympy_expression, coeff_table_complex, initial_radius, N_lats=
  
     # All arrays must be transposed
 #    print(f'Evaluation onto a spherical grid tool {int(time()-start)} seconds')
+    
+    # IMPORTANT: include 4pi correction before returning the stress map
+    map_T_real = map_T_real/(4*np.pi)
+    
     return map_deform_norm.T, map_r_R.T, map_T_real.T#, map_T_imag
 
 
@@ -391,7 +425,38 @@ def BeadSolver(tablepath, order=5, G_exp=1, nu_exp=0.45, N_lats=50, N_lons=100):
     return map_r_R, map_T_R
 #    plt.figure(), plt.imshow(map_r_R)
     
+def BeadSolver_Dampened(tablepath, order=5, G_exp=1, nu_exp=0.45, N_lats=50, N_lons=100, beta=0.9, threshold=0.8):
+    '''
+    The main function to use to solve the stress tensor associated of a bead which
+    has been expanded into a table os Spherical Harmonics.
+    '''
+    start = time()
+    print(f'Solving stress with analytical solution of order {order}')
     
+    # Extract the table of SH coefficients and some initialization parameters
+    lmax, coeff_table_real, coeff_table_complex, initial_radius = create_table(tablepath, units='m')
+    
+    # Load the necessary Master Equation
+    EquationPath = f'/media/alejandro/Coding/MyGits/BEADBUDDY/GeneralSolutions/GeneralSolution_lmax={str(order).zfill(2)}.txt'
+    # Just for testing, the solutions corrected with 4piin the K terms
+#    EquationPath = f'./GeneralSolutions_4piK/GeneralSolution_lmax={str(order).zfill(2)}.txt'
+
+    MasterEquation = dill.load(open(EquationPath, 'rb'))
+    
+    # Substitute all the Sh coeffs and the physical parameters into the Master Equation
+#    sympy_expression = ParameterSubstitution(MasterEquation, coeff_table_complex, initial_radius, G_exp, nu_exp, order)
+    # REPLACE numbers instead of subs, 10 times faster
+#    sympy_expression = ParameterSubstitutionReplace(MasterEquation, coeff_table_complex, initial_radius, G_exp, nu_exp, order)
+    # Dampened solution
+    sympy_expression = ParameterSubstitutionReplace_Dampened(MasterEquation, coeff_table_complex, initial_radius, G_exp, nu_exp, order, beta=beta, threshold=threshold)
+
+
+    # Evaluate the tension function onto a custom grid
+#    map_deform_norm, map_r_R, map_T_R = Equation2Maps(sympy_expression, coeff_table_complex, initial_radius, N_lats=N_lats, N_lons=N_lons)
+    map_deform_norm, map_r_R, map_T_R = Equation2Maps(sympy_expression, coeff_table_complex, initial_radius, N_lats=N_lats, N_lons=N_lons)
+    print(f'Solution took {round(time()-start, 4)} seconds')    
+    print('='*50+'\n')
+    return map_r_R, map_T_R    
     
 #%% 
 '''
@@ -411,10 +476,11 @@ if __name__ == "__main__": # dont execute on import
     Forces = []
     for i, file in enumerate(files):
             tablepath =  parent+file
-            map_r_R, map_T_R = BeadSolver(tablepath, order=1, N_lats=50, N_lons=100, G_exp=7800, nu_exp=0.45)
+            map_r_R, map_T_R = BeadSolver(tablepath, order=5, N_lats=50, N_lons=100, G_exp=7800, nu_exp=0.45)
             Force = IntegrateTension(map_r_R,map_T_R)
             Forces.append(Force)
 #    np.savetxt(parent+'Forces_mN.txt', cosa)
+            
 #%% Solution times
 if __name__ == "__main__":
     plt.style.use('dark_background')
@@ -458,3 +524,13 @@ if __name__ == "__main__": # dont execute on import
     np.savetxt('/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/Forces_after.txt', Forces[1])
     np.savetxt('/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/Radii_before.txt', Radii[0])
     np.savetxt('/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/Radii_after.txt', Radii[1])
+    
+#%%
+'''
+Deformability cytometry
+'''
+if __name__ == "__main__": # dont execute on import
+    tablepath = '/media/alejandro/Coding/Deformability Citometry/Tablita.npy'
+    map_r_R, map_T_R = BeadSolver(tablepath, order=5, N_lats=50, N_lons=100, G_exp=1200, nu_exp=0.45)
+    Plotter_Maps2D([map_r_R, map_T_R], titles=['Radius', 'Tension'], units=['um', 'Pa'])
+    Plotter_MapOnMap(map_r_R, map_T_R, title='Tension')
