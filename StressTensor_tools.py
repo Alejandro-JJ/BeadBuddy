@@ -242,9 +242,11 @@ def Plotter_Maps2D(maps,titles=[], units=[], colorlist=None):
     This function accepts a list with an arbitraty number of maps to be plotted
     and plots them in latitude-longitude fashion
     """
-    plt.style.use('dark_background')
-#    plt.style.use('default')
-    fuente = {'fontsize':12, 'fontname':'Arial'}
+#    plt.style.use('dark_background')
+    plt.style.use('default')
+    fs = 14
+    fuente = {'fontsize':fs, 'fontname':'Arial'}
+    fuente_title = {'fontsize':fs+4, 'fontname':'Arial'}
     N_maps = len(maps)
     len_tt, len_pp = np.shape(maps[0])[0]-1, np.shape(maps[0])[1]-1
     fig, axs = plt.subplots(N_maps, 1, sharex=True, figsize=(6,6))
@@ -261,20 +263,23 @@ def Plotter_Maps2D(maps,titles=[], units=[], colorlist=None):
             m = axs[i].imshow(amap, cmap=colorlist[i])
         axs[i].set_xticks([0,int(len_pp/2),len_pp])
         axs[i].set_yticks([0,int(len_tt/2),len_tt])
-        axs[i].set_yticklabels([r'$0$', r'$\pi/2$', r'$\pi$'])
+        axs[i].set_yticklabels([r'$0$', r'$\pi/2$', r'$\pi$'], fontsize=fs)
         axs[i].set_ylabel(r'$\theta$', **fuente)        
         cbar = plt.colorbar(m, ax=axs[i], fraction=0.024, pad=0.04)
         cbar.formatter.set_powerlimits((0, 0)) # scientific notation
+        cbar.ax.yaxis.get_offset_text().set_fontsize(fs)
+        cbar.ax.tick_params(labelsize=fs) 
         
         if len(units)==len(maps):
-            cbar.ax.set_ylabel(units[i])
+            cbar.ax.set_ylabel(units[i], fontsize=fs)
             
     if len(titles)==N_maps:
         for i,title in enumerate(titles):
-            axs[i].set_title(titles[i],**fuente)
+            axs[i].set_title(titles[i],**fuente_title)
         
-    axs[N_maps-1].set_xlabel(r'$\phi$')
-    axs[N_maps-1].set_xticklabels(['0', r'$\pi$', r'$2\pi$'])
+    axs[N_maps-1].set_xlabel(r'$\phi$', fontsize=fs)
+    axs[N_maps-1].set_xticklabels(['0', r'$\pi$', r'$2\pi$'], fontsize=fs)
+    plt.tight_layout()
     plt.show()
 
 def set_axes_equal(ax):
@@ -319,7 +324,7 @@ def Plotter_MapOnMap(map_r, map_toplot, title='', color=None, ax=None):
     #norm = colors.Normalize(-0.5, 0.5)
     
     
-    fuente = {'fontsize':12, 'fontname':'Arial'}
+    fuente = {'fontsize':18, 'fontname':'Arial'}
     map_shape = np.shape(map_r) 
     # Coordinates
     pp, tt = np.meshgrid( 
@@ -329,8 +334,8 @@ def Plotter_MapOnMap(map_r, map_toplot, title='', color=None, ax=None):
     y = map_r * np.sin(tt) * np.sin(pp)
     z = map_r * np.cos(tt)
     #Plot with custom map as facecolor
-#    plt.style.use('default')
-    plt.style.use('dark_background')
+    plt.style.use('default')
+#    plt.style.use('dark_background')
     if ax==None:
         fig = plt.figure(figsize=(5,5))
         ax = fig.add_subplot(111, projection='3d')
@@ -534,3 +539,15 @@ if __name__ == "__main__": # dont execute on import
     map_r_R, map_T_R = BeadSolver(tablepath, order=5, N_lats=50, N_lons=100, G_exp=1200, nu_exp=0.45)
     Plotter_Maps2D([map_r_R, map_T_R], titles=['Radius', 'Tension'], units=['um', 'Pa'])
     Plotter_MapOnMap(map_r_R, map_T_R, title='Tension')
+    
+#%%
+'''
+Paper BeadBuddy Bead 20201116 B0
+'''
+if __name__ == "__main__": # dont execute on import
+    plt.close('all')
+    tablepath = '/media/alejandro/PAPER_2024/Figure_5_Examples/PAA_analysis_20201116_tp59/Segmentations20_100_2_1/SH_Analysis_Beads_tp59_SH_8_no_rotation/SH_Array_Bead_0001.npy'
+    map_r_R, map_T_R = BeadSolver(tablepath, order=5, N_lats=50, N_lons=100, G_exp=1200, nu_exp=0.45)
+    Plotter_Maps2D([map_r_R*1e6, map_T_R], titles=['Radius', 'Tension'], units=[r'$\mu m$', 'Pa'], colorlist=['RdBu', 'BrBG'])
+    Plotter_MapOnMap(map_r_R, map_T_R, title='Tension',color='BrBG')
+    Plotter_MapOnMap(map_r_R, map_r_R, title='Radius')
