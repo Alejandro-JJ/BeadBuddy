@@ -2,7 +2,7 @@ import warnings
 warnings.filterwarnings('ignore')
 import sys
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtWidgets import QMainWindow, QFileDialog
+from PyQt5.QtWidgets import QMainWindow, QFileDialog, QToolTip
 import PyQt5.QtGui as QtGui
 from PyQt5.QtGui import QImage
 from skimage import io
@@ -17,7 +17,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from MasterSegmenter import MasterSegmenter
 
 from F_C20_Optimization import C20_optimization , C20_rotation_outputs
-from StressTensor_tools import BeadSolver, Plotter_Maps2D, Plotter_MapOnMap, IntegrateTension
+from StressTensor_tools import BeadSolver, Plotter_Maps2D, Plotter_MapOnMap#, IntegrateTension
 
 '''
 GUI Setup
@@ -214,23 +214,6 @@ class Ui_MainWindow(QMainWindow):
 "font-weight: bold\n"
 "")
         self.checkBox.setObjectName("checkBox")
-        
-        # Custom checkbox to save labelled image
-        self.checkBox_LabelledPic = QtWidgets.QCheckBox(self.centralwidget)
-        self.checkBox_LabelledPic.setGeometry(QtCore.QRect(875, 520, 121, 21))
-        self.checkBox_LabelledPic.setStyleSheet("color: rgb(255,255,255);\n"
-"font-weight: bold\n"
-"")
-        self.checkBox_LabelledPic.setObjectName("checkBox_LabelledPic")
-        
-        # Custom checkbox to save individual 3D plots
-        self.checkBox_SavePlots = QtWidgets.QCheckBox(self.centralwidget)
-        self.checkBox_SavePlots.setGeometry(QtCore.QRect(980, 520, 121, 21))
-        self.checkBox_SavePlots.setStyleSheet("color: rgb(255,255,255);\n"
-"font-weight: bold\n"
-"")
-        self.checkBox_SavePlots.setObjectName("checkBox_SavePlots")
-        
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1098, 20))
@@ -278,8 +261,14 @@ class Ui_MainWindow(QMainWindow):
         self.checkBox.setText(_translate("MainWindow", "External plots"))
         self.menuFile.setTitle(_translate("MainWindow", "File..."))
         self.Button_Open.setText(_translate("MainWindow", "Open TIFF"))
-        self.checkBox_LabelledPic.setText(_translate("MainWindow", "Labelled"))
-        self.checkBox_SavePlots.setText(_translate("MainWindow", "3D plots"))
+        
+        '''
+        Set tooltips
+        '''
+        self.INPUT_BGnoise.setToolTip("Kernel size (in pixels) \nfor a smoothing gaussian filter")
+        self.INPUT_Threshold.setToolTip("Intensity pixel value at which \nthe watershed algorith will start working")
+        self.INPUT_Spot.setToolTip("Estimated size (in pixels) of the expected objects \nIf left to 1, all objects will be considered")
+        self.INPUT_Outline.setToolTip("Separation of expected objects. The higher \nthis value (1-10), the more segments will be considered in an object")
         
         '''
         Initial disable of buttons
@@ -503,13 +492,6 @@ class Ui_MainWindow(QMainWindow):
         self.SHOrd = int(self.INPUT_SH_Order.text())
         self.nu = float(self.INPUT_Poisson.text())
         self.G = int(self.INPUT_G.text())
-        
-        # Save the complete labelled image if the user clicked the checkbox
-        if self.checkBox_LabelledPic.isChecked():
-            self.LabelledSaveName = self.FolderName + f'/Labelled_picture_{self.backg_r}_{self.thr}_{self.s_spot}_{self.s_outl}.tiff'
-            io.imsave(self.LabelledSaveName, self.imbeads.astype('float32'))
-
-        
         # Number of detected beads has been previously defined
         for iter_pixvalue in range(1,self.n+1):
             print(f'Analyzing bead {iter_pixvalue}')
@@ -531,21 +513,7 @@ class Ui_MainWindow(QMainWindow):
                 # Solve bead and save Tension map and force
                 self.LoadName = self.FolderSaveName + '/' + 'SH_Array_Bead_' + str(iter_pixvalue).zfill(4) + '.npy'
                 map_r_R, map_T_R = BeadSolver(self.LoadName, order=self.SHOrd, G_exp=self.G, nu_exp=self.nu, N_lats=50, N_lons=100)
-                # Save map_T_R and force
-                self.TensionSaveName = self.FolderSaveName+'/'+'TensionMap_'+str(iter_pixvalue).zfill(4)+'.npy'
-                self.ForceSaveName = self.FolderSaveName+'/'+'Force_'+str(iter_pixvalue).zfill(4)+'.npy'
-                self.RadiusSaveName = self.FolderSaveName+'/'+'RadiusMap_'+str(iter_pixvalue).zfill(4)+'.npy'
-                np.save(self.ForceSaveName, IntegrateTension(map_r_R, map_T_R))
-                np.save(self.TensionSaveName, map_T_R)
-                np.save(self.RadiusSaveName, map_r_R)
-        
                 
-                # Generate the 3D plot and save, and close
-                if self.checkBox_SavePlots.isChecked():
-                    plotscale=1e6
-                    Plotter_MapOnMap(map_r_R*plotscale, map_T_R, title='Radial stress')
-                    plt.savefig(self.FolderSaveName + f'/3D_Bead_{iter_pixvalue}.png')
-                    plt.close('all')
             except:
                 print(colored('Bead could not be solved!\n', 'red'))            
 

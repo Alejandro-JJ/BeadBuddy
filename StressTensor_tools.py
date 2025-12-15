@@ -14,8 +14,8 @@ import matplotlib.pyplot as plt
 from matplotlib import cm
 import dill 
 from matplotlib.ticker import MaxNLocator
-from numba import jit
-import tensorflow
+#from numba import jit
+#import tensorflow
 dill.settings['recursive']=True
 r, r0, theta, phi, l, m, pi, x, nu, G = sp.symbols('r, r0, θ, φ, l, m, π, x, ν, G')
 
@@ -310,6 +310,20 @@ def set_axes_equal(ax):
     ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
     ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
     
+def brute_axes_equal(ax):
+    '''
+    Little harsh, but works
+    '''
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    zmin, zmax = ax.get_zlim()
+    mmax = max([xmax, ymax, zmax])
+    mmin = min([xmin, ymin, zmin])
+    ax.set_xlim3d([mmin, mmax])
+    ax.set_ylim3d([mmin, mmax])
+    ax.set_zlim3d([mmin, mmax])
+    ax.set_box_aspect([1,1,1])
+    plt.show()
 
 def Plotter_MapOnMap(map_r, map_toplot, title='', color=None, ax=None):
     """
@@ -361,7 +375,8 @@ def Plotter_MapOnMap(map_r, map_toplot, title='', color=None, ax=None):
     # Eliminate grid
     ax.grid(False)
     # set axes equal
-    set_axes_equal(ax)
+    #set_axes_equal(ax)
+    brute_axes_equal(ax)
     plt.show()
  
     
@@ -462,6 +477,14 @@ def BeadSolver_Dampened(tablepath, order=5, G_exp=1, nu_exp=0.45, N_lats=50, N_l
     print(f'Solution took {round(time()-start, 4)} seconds')    
     print('='*50+'\n')
     return map_r_R, map_T_R    
+
+#%%
+'''
+Test plot
+'''
+#map_r = np.load('/media/alejandro/Coding/Test_TIFFS/test/SH_Analysis/RadiusMap_0001.npy')
+#map_T = np.load('/media/alejandro/Coding/Test_TIFFS/test/SH_Analysis/TensionMap_0001.npy')
+#Plotter_MapOnMap(map_r, map_T)
     
 #%% 
 '''
@@ -469,85 +492,85 @@ Example use
 '''
 # 6 seconds with subs
 # with xreplace
-
-import os
-if __name__ == "__main__": # dont execute on import
-#    mytable = GenerateCustomTable(([0,0,10], [2,2,0.71], [4,-3, 0.36]))
-#    np.save('tablita.npy', mytable)
-#    plt.close('all')
-#    tablepath = '/media/alejandro/Coding/MyGits/BEADBUDDY/tablita.npy'
-    parent = '/media/alejandro/PAPER_2024/Figure_5_Examples/Arne_muscles/belly2/PAABeads/Segmentations_20_100_2_1/SH_Analysis_PAABeads_down_substack_50_395_SH_11/' 
-    files = list(sorted([f for f in os.listdir(parent) if f.endswith('npy')]))
-    Forces = []
-    for i, file in enumerate(files):
-            tablepath =  parent+file
-            map_r_R, map_T_R = BeadSolver(tablepath, order=5, N_lats=50, N_lons=100, G_exp=7800, nu_exp=0.45)
-            Force = IntegrateTension(map_r_R,map_T_R)
-            Forces.append(Force)
+#
+#import os
+#if __name__ == "__main__": # dont execute on import
+##    mytable = GenerateCustomTable(([0,0,10], [2,2,0.71], [4,-3, 0.36]))
+##    np.save('tablita.npy', mytable)
+##    plt.close('all')
+##    tablepath = '/media/alejandro/Coding/MyGits/BEADBUDDY/tablita.npy'
+#    parent = '/media/alejandro/PAPER_2024/Figure_5_Examples/Arne_muscles/belly2/PAABeads/Segmentations_20_100_2_1/SH_Analysis_PAABeads_down_substack_50_395_SH_11/' 
+#    files = list(sorted([f for f in os.listdir(parent) if f.endswith('npy')]))
+#    Forces = []
+#    for i, file in enumerate(files):
+#            tablepath =  parent+file
+#            map_r_R, map_T_R = BeadSolver(tablepath, order=5, N_lats=50, N_lons=100, G_exp=7800, nu_exp=0.45)
+#            Force = IntegrateTension(map_r_R,map_T_R)
+#            Forces.append(Force)
 #    np.savetxt(parent+'Forces_mN.txt', cosa)
             
 #%% Solution times
-if __name__ == "__main__":
-    plt.style.use('dark_background')
-    order = [1,2,3,4,5,6,7,8,9,10]
-    timesol = [0.2929, 0.3654, 0.5325, 0.7864, 1.014, 1.3758, 2.1087, 2.3813, 2.8119, 3.8098]
-    fig, ax = plt.subplots(1,1, figsize=(6,4))
-    plt.plot(order, timesol, '^-', markersize=10, c='coral')
-    fs = 15
-    ax.set_xlabel('Solution order', fontsize=fs)
-    ax.set_ylabel('Solution time [s]', fontsize=fs)
-    ax.tick_params(axis='both', labelsize=fs)
-    ax.set_title('Solution time of BeadBuddy', fontsize=fs)
-    plt.grid(alpha=0.3)
-    plt.tight_layout()
+#if __name__ == "__main__":
+#    plt.style.use('dark_background')
+#    order = [1,2,3,4,5,6,7,8,9,10]
+#    timesol = [0.2929, 0.3654, 0.5325, 0.7864, 1.014, 1.3758, 2.1087, 2.3813, 2.8119, 3.8098]
+#    fig, ax = plt.subplots(1,1, figsize=(6,4))
+#    plt.plot(order, timesol, '^-', markersize=10, c='coral')
+#    fs = 15
+#    ax.set_xlabel('Solution order', fontsize=fs)
+#    ax.set_ylabel('Solution time [s]', fontsize=fs)
+#    ax.tick_params(axis='both', labelsize=fs)
+#    ax.set_title('Solution time of BeadBuddy', fontsize=fs)
+#    plt.grid(alpha=0.3)
+#    plt.tight_layout()
 
 #%%
-'''
-Bead clearing comparison Arne
-'''
-import os
-from tqdm import tqdm
-if __name__ == "__main__": # dont execute on import
-    path_1 = '/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/before/'
-    path_2 = '/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/after/'
-    Forces = []
-    Radii = []
-    for path in [path_1, path_2]:    
-        files = list(sorted([f for f in os.listdir(path)]))
-        temp_forces = []
-        temp_radii = []
-        for file in tqdm(files):
-                tablepath =  path+file
-                map_r_R, map_T_R, initial_radius = BeadSolver(tablepath, order=5, N_lats=50, N_lons=100, G_exp=7800, nu_exp=0.45)
-                Force = IntegrateTension(map_r_R,map_T_R)
-                temp_forces.append(Force)
-                temp_radii.append(initial_radius)
-        Forces.append(temp_forces)
-        Radii.append(temp_radii)
-
-    np.savetxt('/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/Forces_before.txt', Forces[0])
-    np.savetxt('/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/Forces_after.txt', Forces[1])
-    np.savetxt('/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/Radii_before.txt', Radii[0])
-    np.savetxt('/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/Radii_after.txt', Radii[1])
-    
-#%%
-'''
-Deformability cytometry
-'''
-if __name__ == "__main__": # dont execute on import
-    tablepath = '/media/alejandro/Coding/Deformability Citometry/Tablita.npy'
-    map_r_R, map_T_R = BeadSolver(tablepath, order=5, N_lats=50, N_lons=100, G_exp=1200, nu_exp=0.45)
-    Plotter_Maps2D([map_r_R, map_T_R], titles=['Radius', 'Tension'], units=['um', 'Pa'])
-    Plotter_MapOnMap(map_r_R, map_T_R, title='Tension')
-    
-#%%
-'''
-Paper BeadBuddy Bead 20201116 B0
-'''
-if __name__ == "__main__": # dont execute on import
-    plt.close('all')
-    tablepath = '/media/alejandro/PAPER_2024/Figure_5_Examples/PAA_analysis_20201116_tp59/Segmentations20_100_2_1/SH_Analysis_Beads_tp59_SH_8_no_rotation/SH_Array_Bead_0001.npy'
-    map_r_R, map_T_R = BeadSolver(tablepath, order=5, N_lats=50, N_lons=100, G_exp=1200, nu_exp=0.45)
-    Plotter_Maps2D([map_r_R*1e6, map_T_R], titles=['Radius', 'Tension'], units=[r'$\mu m$', 'Pa'], colorlist=['RdBu', 'BrBG'])
-    Plotter_MapOnMap(map_r_R, map_T_R, title='Tension',color='BrBG')
-    Plotter_MapOnMap(map_r_R, map_r_R, title='Radius')
+#'''
+#Bead clearing comparison Arne
+#'''
+#import os
+#from tqdm import tqdm
+#if __name__ == "__main__": # dont execute on import
+#    path_1 = '/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/before/'
+#    path_2 = '/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/after/'
+#    Forces = []
+#    Radii = []
+#    for path in [path_1, path_2]:    
+#        files = list(sorted([f for f in os.listdir(path)]))
+#        temp_forces = []
+#        temp_radii = []
+#        for file in tqdm(files):
+#                tablepath =  path+file
+#                map_r_R, map_T_R, initial_radius = BeadSolver(tablepath, order=5, N_lats=50, N_lons=100, G_exp=7800, nu_exp=0.45)
+#                Force = IntegrateTension(map_r_R,map_T_R)
+#                temp_forces.append(Force)
+#                temp_radii.append(initial_radius)
+#        Forces.append(temp_forces)
+#        Radii.append(temp_radii)
+#
+#    np.savetxt('/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/Forces_before.txt', Forces[0])
+#    np.savetxt('/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/Forces_after.txt', Forces[1])
+#    np.savetxt('/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/Radii_before.txt', Radii[0])
+#    np.savetxt('/media/betzlab/Arne/elastic PAA beads/clearing control/AllBeads/Radii_after.txt', Radii[1])
+#    
+##%%
+#'''
+#Deformability cytometry
+#'''
+#if __name__ == "__main__": # dont execute on import
+#    tablepath = '/media/alejandro/Coding/Deformability Citometry/Tablita.npy'
+#    map_r_R, map_T_R = BeadSolver(tablepath, order=5, N_lats=50, N_lons=100, G_exp=1200, nu_exp=0.45)
+#    Plotter_Maps2D([map_r_R, map_T_R], titles=['Radius', 'Tension'], units=['um', 'Pa'])
+#    Plotter_MapOnMap(map_r_R, map_T_R, title='Tension')
+#    
+##%%
+#'''
+#Paper BeadBuddy Bead 20201116 B0
+#'''
+#if __name__ == "__main__": # dont execute on import
+#    plt.close('all')
+#    tablepath = '/media/alejandro/PAPER_2024/Figure_5_Examples/PAA_analysis_20201116_tp59/Segmentations20_100_2_1/SH_Analysis_Beads_tp59_SH_8_no_rotation/SH_Array_Bead_0001.npy'
+#    map_r_R, map_T_R = BeadSolver(tablepath, order=5, N_lats=50, N_lons=100, G_exp=1200, nu_exp=0.45)
+#    Plotter_Maps2D([map_r_R*1e6, map_T_R], titles=['Radius', 'Tension'], units=[r'$\mu m$', 'Pa'], colorlist=['RdBu', 'BrBG'])
+#    Plotter_MapOnMap(map_r_R, map_T_R, title='Tension',color='BrBG')
+#    Plotter_MapOnMap(map_r_R, map_r_R, title='Radius')

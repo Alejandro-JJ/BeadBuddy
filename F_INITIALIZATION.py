@@ -79,7 +79,9 @@ def SH2NP(coefficient_table):
      after running sh.expand.SHExpandLSQ(d,lat,lon,lmax)
     '''
 
-    grid=coefficient_table.expand() # Evaluation in grid
+    # hard-coded: BAD:
+    
+    grid=coefficient_table.expand(lmax=20) # Evaluation in grid
     np_grid=grid.to_array()
     
     latitudes=grid.lats()   # [-90°, 90°]
