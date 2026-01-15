@@ -351,7 +351,8 @@ class Ui_MainWindow(QMainWindow):
         Open Load dialog, import tiff and plot its first frame
         '''
 #        initial_path = '/media/alejandro/Coding/MyGits/'
-        initial_path = '/'
+        #initial_path = '/'
+        initial_path = '/home/juradojimene/Desktop/betzlab_ceph/_shared/vos3/data Paul/data_for_analysis_2025/arabidopsis_thaliana/'
         fileNameTIFF = QFileDialog.getOpenFileName(self, 'Open File', initial_path , ('Image Files(*.tiff, *.tif)') )   
         if fileNameTIFF[0] == '':
             return None
@@ -572,6 +573,8 @@ class Ui_MainWindow(QMainWindow):
         # Hard-coded radius resolution: BAD
         # !!!!!!!!!!!!!!!!!!!!!!!!!
         ExpandRes = 20 # Highest lmax to expand the shape (different from lmax for analytical solution)
+        ExpandRes = self.SHOrd
+        
         #!!!!!!!!!!!!!!!!!!!!!!!!!!
         self.Coord, self.Coord_orig, self.SHTable, self.FitCoord = C20_rotation_outputs(self.OptimalRotation, im_binary, ExpandRes, px, pz)
 

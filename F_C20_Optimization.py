@@ -94,10 +94,17 @@ def C20_rotation_outputs(angles, TIFF, ExpDegree, Voxel_XY, Voxel_Z):
     rot_x, rot_y = angles    
     BeadSurface = TIFF
     
+    # These are still the original coords, before rotation
     # The transformations necessary to plot properly the bead
     y=np.where(BeadSurface==1)[0] * Voxel_Z
     z=-np.where(BeadSurface==1)[1]  * Voxel_XY 
     x=np.where(BeadSurface==1)[2] * Voxel_XY 
+    print(f'Range X: {min(x)} ... {max(x)}')
+    print(f'{x[:5]}')
+    print(f'Range Y: {min(y)} ... {max(y)}')
+    print(f'{y[:5]}')
+    print(f'Range Z: {min(z)} ... {max(z)}')
+    print(f'{z[:5]}')
     
 
     # From here on, everything is micrometers!!
@@ -116,6 +123,8 @@ def C20_rotation_outputs(angles, TIFF, ExpDegree, Voxel_XY, Voxel_Z):
     
     # The Rotate function is written such that rotation is first in X and then in Y
     # and it is expressed in degrees
+    
+    # FOR THE ANALYSIS I IGNORED THE ROTATION!?!?
     x_new, y_new, z_new = Rotate (x, y, z, rot_x, rot_y, 0)
     coord = [x_new, y_new, z_new]
         

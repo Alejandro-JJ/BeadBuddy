@@ -424,6 +424,8 @@ def BeadSolver(tablepath, order=5, G_exp=1, nu_exp=0.45, N_lats=50, N_lons=100):
     
     # Extract the table of SH coefficients and some initialization parameters
     lmax, coeff_table_real, coeff_table_complex, initial_radius = create_table(tablepath, units='m')
+    print(f'Coeff c00: {coeff_table_real[0,0,0]}')
+    print(f'Coeff c20: {coeff_table_real[0,2,0]}')
     
     # Load the necessary Master Equation
     EquationPath = f'/media/alejandro/Coding/MyGits/BEADBUDDY/GeneralSolutions/GeneralSolution_lmax={str(order).zfill(2)}.txt'
@@ -442,6 +444,8 @@ def BeadSolver(tablepath, order=5, G_exp=1, nu_exp=0.45, N_lats=50, N_lons=100):
     map_deform_norm, map_r_R, map_T_R = Equation2Maps(sympy_expression, coeff_table_complex, initial_radius, N_lats=N_lats, N_lons=N_lons)
     print(f'Solution took {round(time()-start, 4)} seconds')    
     print('='*50+'\n')
+    print(f'Max T: {np.amax(map_T_R)}')
+    print(f'Min T: {np.amin(map_T_R)}')  
     return map_r_R, map_T_R
 #    plt.figure(), plt.imshow(map_r_R)
     
@@ -476,6 +480,8 @@ def BeadSolver_Dampened(tablepath, order=5, G_exp=1, nu_exp=0.45, N_lats=50, N_l
     map_deform_norm, map_r_R, map_T_R = Equation2Maps(sympy_expression, coeff_table_complex, initial_radius, N_lats=N_lats, N_lons=N_lons)
     print(f'Solution took {round(time()-start, 4)} seconds')    
     print('='*50+'\n')
+    print(f'Max T: {np.amax(map_T_R)}')
+    print(f'Min T: {np.amin(map_T_R)}')
     return map_r_R, map_T_R    
 
 #%%
