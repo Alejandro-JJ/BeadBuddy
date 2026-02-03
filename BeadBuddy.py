@@ -515,7 +515,7 @@ class Ui_MainWindow(QMainWindow):
         for iter_pixvalue in range(1,self.n+1):
             print(f'Analyzing bead {iter_pixvalue}')
              # Crop 
-            buffer=5
+            buffer = 0
             coords = np.where(self.imbeads==iter_pixvalue)
             lim_z = [np.min(coords[0])-buffer, np.max(coords[0])+buffer]
             lim_y = [np.min(coords[1])-buffer, np.max(coords[1])+buffer]
@@ -572,8 +572,8 @@ class Ui_MainWindow(QMainWindow):
         
         # Hard-coded radius resolution: BAD
         # !!!!!!!!!!!!!!!!!!!!!!!!!
-        ExpandRes = 20 # Highest lmax to expand the shape (different from lmax for analytical solution)
-        ExpandRes = self.SHOrd
+        ExpandRes = 15 # Highest lmax to expand the shape (different from lmax for analytical solution)
+        #ExpandRes = self.SHOrd
         
         #!!!!!!!!!!!!!!!!!!!!!!!!!!
         self.Coord, self.Coord_orig, self.SHTable, self.FitCoord = C20_rotation_outputs(self.OptimalRotation, im_binary, ExpandRes, px, pz)
