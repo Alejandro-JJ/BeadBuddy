@@ -549,6 +549,7 @@ class Ui_MainWindow(QMainWindow):
                     plt.close('all')
             except:
                 print(colored('Bead could not be solved!\n', 'red'))            
+        print(colored('\nALL BEADS HAVE BEEN SOLVED!\n', 'green'))            
 
     def ExpandAndSave(self, pixvaluesave):
         '''
