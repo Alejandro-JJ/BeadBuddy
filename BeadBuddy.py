@@ -461,7 +461,7 @@ class Ui_MainWindow(QMainWindow):
             print(colored('You have not clicked on a bead yet!', 'red'))
         else:
             # crop picture to only contain our desired bead
-            buffer = 5
+            buffer = 0
             coords = np.where(self.imbeads==self.pixvalue)
             lim_z = [np.min(coords[0])-buffer, np.max(coords[0])+buffer]
             lim_y = [np.min(coords[1])-buffer, np.max(coords[1])+buffer]
