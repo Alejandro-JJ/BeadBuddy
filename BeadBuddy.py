@@ -507,7 +507,8 @@ class Ui_MainWindow(QMainWindow):
         
         # Save the complete labelled image if the user clicked the checkbox
         if self.checkBox_LabelledPic.isChecked():
-            self.LabelledSaveName = self.FolderName + f'/Labelled_picture_{self.backg_r}_{self.thr}_{self.s_spot}_{self.s_outl}.tiff'
+            subname = self.fileNameTIFF.split('/')[-1].strip('.tif').strip('.tiff')
+            self.LabelledSaveName = self.FolderName + f'/{subname}_LABELLED_{self.backg_r}_{self.thr}_{self.s_spot}_{self.s_outl}.tiff'
             io.imsave(self.LabelledSaveName, self.imbeads.astype('float32'))
 
         
