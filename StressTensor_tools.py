@@ -428,7 +428,8 @@ def BeadSolver(tablepath, order=5, G_exp=1, nu_exp=0.45, N_lats=50, N_lons=100):
     print(f'Coeff c20: {coeff_table_real[0,2,0]}')
     
     # Load the necessary Master Equation
-    EquationPath = f'/media/alejandro/Coding/MyGits/BEADBUDDY/GeneralSolutions/GeneralSolution_lmax={str(order).zfill(2)}.txt'
+    #EquationPath = f'/media/alejandro/Coding/MyGits/BEADBUDDY/GeneralSolutions/GeneralSolution_lmax={str(order).zfill(2)}.txt'
+    EquationPath = f'./GeneralSolutions/GeneralSolution_lmax={str(order).zfill(2)}.txt'
     # Just for testing, the solutions corrected with 4piin the K terms
 #    EquationPath = f'./GeneralSolutions_4piK/GeneralSolution_lmax={str(order).zfill(2)}.txt'
 
