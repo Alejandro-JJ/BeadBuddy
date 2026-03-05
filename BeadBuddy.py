@@ -461,7 +461,7 @@ class Ui_MainWindow(QMainWindow):
             print(colored('You have not clicked on a bead yet!', 'red'))
         else:
             # crop picture to only contain our desired bead
-            buffer = 0
+            buffer = 3
             coords = np.where(self.imbeads==self.pixvalue)
             lim_z = [np.min(coords[0])-buffer, np.max(coords[0])+buffer]
             lim_y = [np.min(coords[1])-buffer, np.max(coords[1])+buffer]
@@ -563,19 +563,21 @@ class Ui_MainWindow(QMainWindow):
         px, pz = float(self.INPUT_pxy.text()), float(self.INPUT_Threshold_2.text())
         #SHOrd = int(self.INPUT_SH_Order.text())
 
-        #self.OptimalRotation = C20_optimization(im_binary, self.SHOrd, px, pz)
+        self.OptimalRotation = C20_optimization(im_binary, self.SHOrd, px, pz)
         RotationTXT = C20_optimization(im_binary, self.SHOrd, px, pz) # for saving in txt file
         
         # Hard-coded not rotation for the 3D plot
         # This way the bead is shown as originally found in the tiff
         print('Rotation is being ignored for plot \n')
         self.OptimalRotation = [0,0]
+        # Rotation is being used for plot
+        #self.OptimalRotation = RotationTXT
 #        self.Coord, self.Coord_orig, self.SHTable, self.FitCoord = C20_rotation_outputs(self.OptimalRotation, im_binary, self.SHOrd, px, pz)
         
         # Hard-coded radius resolution: BAD
         # !!!!!!!!!!!!!!!!!!!!!!!!!
-        ExpandRes = 15 # Highest lmax to expand the shape (different from lmax for analytical solution)
-        #ExpandRes = self.SHOrd
+#        ExpandRes = 15 # Highest lmax to expand the shape (different from lmax for analytical solution)
+        ExpandRes = self.SHOrd
         
         #!!!!!!!!!!!!!!!!!!!!!!!!!!
         self.Coord, self.Coord_orig, self.SHTable, self.FitCoord = C20_rotation_outputs(self.OptimalRotation, im_binary, ExpandRes, px, pz)
@@ -598,6 +600,10 @@ class Ui_MainWindow(QMainWindow):
         # Save rotated coordinates
         CoordsSaveName = self.FolderSaveName + '/' + 'Coords_ROT_'+str(pixvaluesave).zfill(4) + '.npy'
         np.save(CoordsSaveName, self.Coord)
+        
+        # Save rotated coordinates
+        CoordsOrigSaveName = self.FolderSaveName + '/' + 'Coords_OG_'+str(pixvaluesave).zfill(4) + '.npy'
+        np.save(CoordsOrigSaveName, self.Coord_orig)
 
 
 
